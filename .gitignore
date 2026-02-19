@@ -10,6 +10,9 @@ data/downloads/
 data/features/embeddings/
 download_progress.json
 
+# Project
+CLAUDE.md
+
 # Environment
 .env
 .env.local
