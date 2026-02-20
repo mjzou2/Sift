@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     });
 
     const startTime = Date.now();
-    const results = search({ prompt, seed_track_ids, limit });
+    const results = await search({ prompt, seed_track_ids, limit });
     const duration = Date.now() - startTime;
 
     console.log(`[search] Found ${results.length} results in ${duration}ms`);

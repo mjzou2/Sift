@@ -1,11 +1,11 @@
 import {
   getTrackEmbeddings,
-  getPhraseEmbeddings,
   getMetadata,
   getPhrases,
   getTrackEmbedding,
   getPhraseEmbedding
 } from './embeddings';
+import { extractTags, findClosestPhraseByTags } from './claude';
 import type { SearchResult } from './types';
 
 /**
@@ -175,6 +175,27 @@ function blendEmbeddings(emb1: Float32Array, weight1: number, emb2: Float32Array
   return normalize(blended);
 }
 
+/**
+ * Resolve a text prompt to a phrase index.
+ * Tries Claude tag extraction first, falls back to Levenshtein.
+ */
+async function resolvePromptToPhrase(prompt: string): Promise<number> {
+  // Try Claude tag extraction
+  const tags = await extractTags(prompt);
+
+  if (tags.length > 0) {
+    const phraseIndex = findClosestPhraseByTags(tags);
+    if (phraseIndex >= 0) {
+      console.log(`[search] Using Claude tags for "${prompt}"`);
+      return phraseIndex;
+    }
+  }
+
+  // Fall back to Levenshtein
+  console.log(`[search] Using Levenshtein fallback for "${prompt}"`);
+  return findClosestPhrase(prompt);
+}
+
 export interface SearchParams {
   prompt?: string;
   seed_track_ids?: string[];
@@ -188,7 +209,7 @@ export interface SearchParams {
  * 2. Seed only: seed tracks provided, no prompt
  * 3. Combined: both prompt and seed tracks (70% seed + 30% text)
  */
-export function search(params: SearchParams): SearchResult[] {
+export async function search(params: SearchParams): Promise<SearchResult[]> {
   const { prompt, seed_track_ids, limit = 20 } = params;
 
   // Validate input
@@ -200,7 +221,7 @@ export function search(params: SearchParams): SearchResult[] {
 
   // Case 1: Text only
   if (prompt && (!seed_track_ids || seed_track_ids.length === 0)) {
-    const phraseIndex = findClosestPhrase(prompt);
+    const phraseIndex = await resolvePromptToPhrase(prompt);
     queryVector = getPhraseEmbedding(phraseIndex);
   }
 
@@ -212,7 +233,7 @@ export function search(params: SearchParams): SearchResult[] {
 
   // Case 3: Combined (70% seed + 30% text)
   else {
-    const phraseIndex = findClosestPhrase(prompt!);
+    const phraseIndex = await resolvePromptToPhrase(prompt!);
     const textEmbedding = getPhraseEmbedding(phraseIndex);
 
     const seedEmbeddings = seed_track_ids!.map(id => getTrackEmbedding(id));
