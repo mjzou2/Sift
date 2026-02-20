@@ -4,7 +4,7 @@
 
 Lofi music discovery web app. Describe a vibe or pick a seed track, and Sift finds similar songs from a catalog of 4,500+ Lofi Records tracks using audio embeddings and cosine similarity.
 
-![Sift landing page](docs/screenshot.png)
+![Sift landing page](docs/screenshot.png?raw=true)
 
 ## How It Works
 
